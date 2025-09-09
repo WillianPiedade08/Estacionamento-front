@@ -2,13 +2,13 @@ const API_BASE = 'https://estacionamentowillian.vercel.app';
 const vehicleForm = document.getElementById('vehicleForm');
 const vehicleListBody = document.querySelector('#vehicleList tbody');
 const stayHistoryBody = document.querySelector('#stayHistory tbody');
-// Formatação de data/hora
+// Formata data/hora para pt-BR
 function formatDateTime(dateStr) {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
   return d.toLocaleString('pt-BR');
 }
-// Formatação de duração entre entrada e saída
+// Formata duração entre entrada e saída
 function formatDuration(start, end) {
   if (!end) return '-';
   const diffMs = new Date(end) - new Date(start);
@@ -17,15 +17,26 @@ function formatDuration(start, end) {
   const mins = diffMins % 60;
   return `${hours}h ${mins}m`;
 }
-// Carrega e exibe veículos estacionados com ações
+// Carrega veículos estacionados
 async function loadVehicles() {
   try {
     const res = await fetch(`${API_BASE}/veiculos`);
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('Erro na resposta /veiculos:', res.status, text);
+      alert('Erro ao carregar veículos. Veja console para detalhes.');
+      return;
+    }
     const veiculos = await res.json();
+    if (!Array.isArray(veiculos)) {
+      console.error('Resposta /veiculos não é array:', veiculos);
+      alert('Erro: dados de veículos inválidos.');
+      return;
+    }
     vehicleListBody.innerHTML = '';
     veiculos.forEach(v => {
       const estadiaAtiva = v.estadias.find(e => !e.saida);
-      if (!estadiaAtiva) return; // só mostra veículos com estadia ativa
+      if (!estadiaAtiva) return;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${v.placa}</td>
@@ -41,7 +52,6 @@ async function loadVehicles() {
       `;
       vehicleListBody.appendChild(tr);
     });
-    // Eventos dos botões
     document.querySelectorAll('.saida-btn').forEach(btn => {
       btn.addEventListener('click', () => registrarSaida(btn.dataset.placa));
     });
@@ -53,13 +63,25 @@ async function loadVehicles() {
     });
   } catch (error) {
     console.error('Erro ao carregar veículos:', error);
+    alert('Erro ao carregar veículos. Veja console para detalhes.');
   }
 }
-// Carrega e exibe histórico de estadias
+// Carrega histórico de estadias
 async function loadStayHistory() {
   try {
     const res = await fetch(`${API_BASE}/estadias`);
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('Erro na resposta /estadias:', res.status, text);
+      alert('Erro ao carregar histórico. Veja console para detalhes.');
+      return;
+    }
     const estadias = await res.json();
+    if (!Array.isArray(estadias)) {
+      console.error('Resposta /estadias não é array:', estadias);
+      alert('Erro: dados de estadias inválidos.');
+      return;
+    }
     stayHistoryBody.innerHTML = '';
     estadias.forEach(e => {
       const tr = document.createElement('tr');
@@ -74,6 +96,7 @@ async function loadStayHistory() {
     });
   } catch (error) {
     console.error('Erro ao carregar histórico:', error);
+    alert('Erro ao carregar histórico. Veja console para detalhes.');
   }
 }
 // Função para cadastrar veículo e criar estadia
@@ -189,6 +212,10 @@ async function registrarSaida(placa) {
   try {
     // Busca estadia ativa do veículo
     const resEstadias = await fetch(`${API_BASE}/estadias?placa=${placa}`);
+    if (!resEstadias.ok) {
+      const text = await resEstadias.text();
+      throw new Error(`Erro ao buscar estadias: ${text}`);
+    }
     const estadias = await resEstadias.json();
     // Filtra estadia ativa (sem saída)
     const estadiaAtiva = estadias.find(e => !e.saida);
