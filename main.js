@@ -1,14 +1,14 @@
-const API_BASE = 'https://estacionamentowillian.vercel.app'; // ajuste para sua URL real
+const API_BASE = 'https://estacionamentowillian.vercel.app';
 const vehicleForm = document.getElementById('vehicleForm');
 const vehicleListBody = document.querySelector('#vehicleList tbody');
 const stayHistoryBody = document.querySelector('#stayHistory tbody');
-// Função para formatar data/hora
+// Formatação de data/hora
 function formatDateTime(dateStr) {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
   return d.toLocaleString('pt-BR');
 }
-// Função para calcular tempo entre entrada e saída
+// Formatação de duração entre entrada e saída
 function formatDuration(start, end) {
   if (!end) return '-';
   const diffMs = new Date(end) - new Date(start);
@@ -17,15 +17,13 @@ function formatDuration(start, end) {
   const mins = diffMins % 60;
   return `${hours}h ${mins}m`;
 }
-// Carregar veículos estacionados
+// Carrega e exibe veículos estacionados com ações
 async function loadVehicles() {
   try {
     const res = await fetch(`${API_BASE}/veiculos`);
     const veiculos = await res.json();
-    // Limpa tabela
     vehicleListBody.innerHTML = '';
     veiculos.forEach(v => {
-      // Pega estadia ativa (sem saída)
       const estadiaAtiva = v.estadias.find(e => !e.saida);
       if (!estadiaAtiva) return; // só mostra veículos com estadia ativa
       const tr = document.createElement('tr');
@@ -35,19 +33,29 @@ async function loadVehicles() {
         <td>${v.cor || '-'}</td>
         <td>${v.tipo}</td>
         <td>${formatDateTime(estadiaAtiva.entrada)}</td>
-        <td><button class="saida-btn" data-placa="${v.placa}">Registrar Saída</button></td>
+        <td>
+          <button class="saida-btn" data-placa="${v.placa}">Registrar Saída</button>
+          <button class="edit-btn" data-placa="${v.placa}">Editar</button>
+          <button class="delete-btn" data-placa="${v.placa}">Deletar</button>
+        </td>
       `;
       vehicleListBody.appendChild(tr);
     });
-    // Adiciona evento nos botões de saída
+    // Eventos dos botões
     document.querySelectorAll('.saida-btn').forEach(btn => {
       btn.addEventListener('click', () => registrarSaida(btn.dataset.placa));
+    });
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => editarVeiculo(btn.dataset.placa));
+    });
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => deletarVeiculo(btn.dataset.placa));
     });
   } catch (error) {
     console.error('Erro ao carregar veículos:', error);
   }
 }
-// Carregar histórico de estadias
+// Carrega e exibe histórico de estadias
 async function loadStayHistory() {
   try {
     const res = await fetch(`${API_BASE}/estadias`);
@@ -68,8 +76,8 @@ async function loadStayHistory() {
     console.error('Erro ao carregar histórico:', error);
   }
 }
-// Cadastrar veículo e criar estadia
-vehicleForm.addEventListener('submit', async (e) => {
+// Função para cadastrar veículo e criar estadia
+async function cadastrarVeiculo(e) {
   e.preventDefault();
   const formData = new FormData(vehicleForm);
   const veiculo = {
@@ -77,27 +85,27 @@ vehicleForm.addEventListener('submit', async (e) => {
     modelo: formData.get('modelo'),
     cor: formData.get('cor'),
     tipo: formData.get('tipo').toUpperCase(),
-    proprietario: 'Desconhecido', // você pode adicionar campo no form se quiser
-    marca: 'Desconhecida',        // idem
-    telefone: '00000000000',      // idem
+    proprietario: 'Desconhecido',
+    marca: 'Desconhecida',
+    telefone: '00000000000',
   };
   try {
-    // Cria veículo (POST)
+    // Cria veículo
     let res = await fetch(`${API_BASE}/veiculos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(veiculo),
     });
-    if (!res.ok && res.status !== 409) { // 409 = veículo já existe
+    if (!res.ok && res.status !== 409) {
       throw new Error('Erro ao criar veículo');
     }
-    // Cria estadia (POST)
+    // Cria estadia
     res = await fetch(`${API_BASE}/estadias`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         placa: veiculo.placa,
-        valorHora: 5.0, // exemplo fixo, ajuste conforme sua regra
+        valorHora: 5.0,
       }),
     });
     if (!res.ok) throw new Error('Erro ao registrar estadia');
@@ -108,26 +116,93 @@ vehicleForm.addEventListener('submit', async (e) => {
   } catch (error) {
     alert(error.message);
   }
-});
-// Registrar saída do veículo (atualizar estadia)
+}
+// Função para editar veículo (preenche formulário e altera listener)
+async function editarVeiculo(placa) {
+  try {
+    const res = await fetch(`${API_BASE}/veiculos/${placa}`);
+    if (!res.ok) throw new Error('Veículo não encontrado');
+    const v = await res.json();
+    // Preenche formulário
+    vehicleForm.placa.value = v.placa;
+    vehicleForm.modelo.value = v.modelo;
+    vehicleForm.cor.value = v.cor || '';
+    vehicleForm.tipo.value = v.tipo;
+    // Desabilita campo placa (ID)
+    vehicleForm.placa.disabled = true;
+    // Muda texto do botão
+    vehicleForm.querySelector('button[type="submit"]').textContent = 'Atualizar Veículo';
+    // Remove listener antigo para evitar duplicação
+    vehicleForm.removeEventListener('submit', cadastrarVeiculo);
+    // Adiciona listener para atualizar
+    vehicleForm.addEventListener('submit', atualizarVeiculo);
+    async function atualizarVeiculo(e) {
+      e.preventDefault();
+      const veiculoAtualizado = {
+        modelo: vehicleForm.modelo.value,
+        cor: vehicleForm.cor.value,
+        tipo: vehicleForm.tipo.value.toUpperCase(),
+        proprietario: v.proprietario || 'Desconhecido',
+        marca: v.marca || 'Desconhecida',
+        telefone: v.telefone || '00000000000',
+      };
+      try {
+        const res = await fetch(`${API_BASE}/veiculos/${placa}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(veiculoAtualizado),
+        });
+        if (!res.ok) throw new Error('Erro ao atualizar veículo');
+        alert('Veículo atualizado com sucesso!');
+        vehicleForm.reset();
+        vehicleForm.placa.disabled = false;
+        vehicleForm.querySelector('button[type="submit"]').textContent = 'Registrar Entrada';
+        // Remove listener de atualizar e re-adiciona o de cadastrar
+        vehicleForm.removeEventListener('submit', atualizarVeiculo);
+        vehicleForm.addEventListener('submit', cadastrarVeiculo);
+        loadVehicles();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+  } catch (error) {
+    alert(error.message);
+  }
+}
+// Função para deletar veículo
+async function deletarVeiculo(placa) {
+  if (!confirm(`Confirma a exclusão do veículo ${placa}?`)) return;
+  try {
+    const res = await fetch(`${API_BASE}/veiculos/${placa}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Erro ao deletar veículo');
+    alert('Veículo deletado com sucesso!');
+    loadVehicles();
+    loadStayHistory();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+// Função para registrar saída (atualizar estadia)
 async function registrarSaida(placa) {
   try {
     // Busca estadia ativa do veículo
-    const resEstadias = await fetch(`${API_BASE}/estadias?placa=${placa}&ativa=true`);
+    const resEstadias = await fetch(`${API_BASE}/estadias?placa=${placa}`);
     const estadias = await resEstadias.json();
-    if (estadias.length === 0) {
+    // Filtra estadia ativa (sem saída)
+    const estadiaAtiva = estadias.find(e => !e.saida);
+    if (!estadiaAtiva) {
       alert('Estadia ativa não encontrada para este veículo.');
       return;
     }
-    const estadia = estadias[0];
-    // Calcula valor total (exemplo simples)
-    const entrada = new Date(estadia.entrada);
+    const entrada = new Date(estadiaAtiva.entrada);
     const saida = new Date();
     const diffHoras = Math.ceil((saida - entrada) / (1000 * 60 * 60));
-    const valorTotal = diffHoras * estadia.valorHora;
+    const valorTotal = diffHoras * estadiaAtiva.valorHora;
     // Atualiza estadia com saída e valor total
-    const res = await fetch(`${API_BASE}/estadias/${estadia.id}`, {
-      method: 'PUT',
+    const res = await fetch(`${API_BASE}/estadias/${estadiaAtiva.id}`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         saida: saida.toISOString(),
@@ -142,6 +217,7 @@ async function registrarSaida(placa) {
     alert(error.message);
   }
 }
-// Inicializa
+// Inicializa listeners e carrega dados
+vehicleForm.addEventListener('submit', cadastrarVeiculo);
 loadVehicles();
 loadStayHistory();
