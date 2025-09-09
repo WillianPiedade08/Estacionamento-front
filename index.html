@@ -2,71 +2,177 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sistema de Estacionamento</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Estacionamento Will</title>
+  <style>
+    /* Reset básico */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f5f5f5;
+      color: #333;
+    }
+    header {
+      background: #004aad;
+      color: white;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #menu-btn {
+      background: #0066ff;
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-size: 1rem;
+      border-radius: 4px;
+    }
+    #menu-content {
+      display: none;
+      position: absolute;
+      top: 3.5rem;
+      left: 1rem;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      min-width: 150px;
+      z-index: 1000;
+    }
+    #menu-content a {
+      display: block;
+      padding: 0.5rem 1rem;
+      color: #004aad;
+      text-decoration: none;
+      border-bottom: 1px solid #eee;
+    }
+    #menu-content a:hover {
+      background: #e6f0ff;
+    }
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    button {
+      cursor: pointer;
+      background: #004aad;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-size: 1rem;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background: #003080;
+    }
+    #novoVeiculo, #novaEstadia, #add-btn {
+      margin: 0.5rem 0;
+    }
+    .estadia-card {
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      line-height: 1.4;
+    }
+    .estadia-card strong {
+      font-size: 1.1rem;
+    }
+    .estadia-card button.editarVeiculo {
+      margin-top: 0.5rem;
+      background: #007b00;
+    }
+    .estadia-card button.editarVeiculo:hover {
+      background: #005a00;
+    }
+    /* Modal */
+    #modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      padding: 1rem;
+    }
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 100%;
+      padding: 1.5rem;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .modal-content h3 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      color: #004aad;
+    }
+    .modal-content input,
+    .modal-content select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    .modal-content button.fechar {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #999;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+    .modal-content button.fechar:hover {
+      color: #333;
+    }
+  </style>
 </head>
 <body>
   <header>
-    <h1>Estacionamento Central</h1>
+    <h1>Estacionamento Will</h1>
+    <button id="menu-btn" aria-label="Abrir menu">Menu</button>
+    <nav id="menu-content" aria-label="Menu principal">
+      <a href="#veiculos-list">Veículos</a>
+      <a href="#estadias-list">Estadias</a>
+      <a href="#" id="novoVeiculo">Novo Veículo</a>
+      <a href="#" id="novaEstadia">Nova Estadia</a>
+    </nav>
   </header>
-
   <main>
-    <section class="form-section">
-      <h2>Cadastrar Veículo</h2>
-      <form id="vehicleForm">
-        <input type="text" name="placa" placeholder="Placa" required />
-        <input type="text" name="modelo" placeholder="Modelo" required />
-        <input type="text" name="cor" placeholder="Cor" required />
-        <select name="tipo" required>
-          <option value="">Tipo de Veículo</option>
-          <option value="Carro">Carro</option>
-          <option value="Moto">Moto</option>
-        </select>
-        <button type="submit">Registrar Entrada</button>
-      </form>
+    <section>
+      <h2>Veículos</h2>
+      <div id="veiculos-list">Carregando...</div>
     </section>
-
-    <section class="list-section">
-      <h2>Veículos Estacionados</h2>
-      <table id="vehicleList">
-        <thead>
-          <tr>
-            <th>Placa</th>
-            <th>Modelo</th>
-            <th>Cor</th>
-            <th>Tipo</th>
-            <th>Entrada</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-        </tbody>
-      </table>
-    </section>
-
-    <section class="list-section">
-      <h2>Histórico de Estadia</h2>
-      <table id="stayHistory">
-        <thead>
-          <tr>
-            <th>Placa</th>
-            <th>Entrada</th>
-            <th>Saída</th>
-            <th>Tempo</th>
-            <th>Valor</th>
-          </tr>
-        </thead>
-        <tbody>
-        </tbody>
-      </table>
+    <section>
+      <h2>Estadias</h2>
+      <div id="estadias-list">Carregando...</div>
     </section>
   </main>
-
-  <footer>
-    <p>&copy; 2025 Sistema de Estacionamento</p>
-  </footer>
-
-  <script src="main.js"></script> 
+  <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-content">
+      <!-- Conteúdo do modal será inserido via JS -->
+    </div>
+  </div>
+  <script src="main.js"></script>
 </body>
 </html>
